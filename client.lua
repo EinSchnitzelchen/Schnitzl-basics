@@ -1,94 +1,92 @@
---setting locales
-local plyPed = GetPlayerPed(-1)
 
-
-
-Citizen.CreateThread(function() --Setting ESX
-	while ESX == nil do
-		TriggerEvent('esx:getSharedObject', function(obj) ESX = obj end)
-		Citizen.Wait(10)
-	end
-end)
-
+local handsUp = false
+local crouched = false
+local mp_pointing = false
+local keyPressed = false
 --Handsup Script
-Citizen.CreateThread(function()
-    local handsup = false
-	while true do
-		Citizen.Wait(0)
-		if IsControlJustPressed(1, Config.Controls.HandsUP.keyboard) and Config.handsup == true then
-            if not handsup then
-                ESX.Streaming.RequestAnimDict('random@mugging3', function()
-                    TaskPlayAnim(plyPed, 'random@mugging3', 'handsup_standing_base', 8.0, -8, -1, 49, 0, 0, 0, 0)
-                    RemoveAnimDict('random@mugging3')
-                end)
-                SetCurrentPedWeapon(plyPed, -1569615261, true) --Set Playerweapon to bare Hands
-                SetEnableHandcuffs(plyPed, true) --Set Player not be able to Pull/ shoot with weapons
-                handsup = true
-                
-            else
-                handsup = false
-                ClearPedSecondaryTask(plyPed) --Clear the Animation
-                SetCurrentPedWeapon(plyPed, -1569615261, true) --Set Playerweapon to bare Hands again. Just to be sure
-                SetEnableHandcuffs(plyPed, false) --Set Player again be able to Pull/ shoot with weapons
-            end
-        end
+
+RegisterCommand('handsup', function()
+    local ped = PlayerPedId()
+    local animDict = Config.Animations.HandsUp.animDict
+    local anim = Config.Animations.HandsUp.anim
+
+	RequestAnimDict(animDict)
+	while not HasAnimDictLoaded(animDict) do
+		Wait(100)
+	end
+
+    handsUp = not handsUp
+
+    SetCurrentPedWeapon(ped, -1569615261, true) --Set Playerweapon to bare Hands
+    SetEnableHandcuffs(ped, handsUp) --Set Player not be able to Pull/ shoot with weapons
+    -- It will define the value according to your hansUp state
+    if handsUp then
+        TaskPlayAnim(ped, animDict, anim, 8.0, 8.0, -1, 50, 0, false, false, false)
+    else
+        ClearPedTasks(ped) --Clear the Animation
     end
-end)
+end, false)
+
+
+if Config.handsup then
+    RegisterKeyMapping('handsup', 'Toggle HandsUp', 'keyboard', Config.Controls.HandsUP)
+end
 
 --Crouching script
-local crouched = false
 
-Citizen.CreateThread(function()
-    while true do 
-        Citizen.Wait(1)
+RegisterCommand('crouch', function()
+    local ped = PlayerPedId()
+    local crouchSet = Config.Animations.Crouch.walkSet
 
-        local plyPed = GetPlayerPed(-1)
+    if DoesEntityExist(ped) and not IsEntityDead(ped) and not IsPauseMenuActive() then
+        crouched = not crouched
 
-        if (DoesEntityExist(plyPed) and not IsEntityDead(plyPed)) and Config.crouch == true then 
-            DisableControlAction(0, Config.Controls.Crouch.keyboard, true)
-
-            if (not IsPauseMenuActive()) then 
-                if (IsDisabledControlJustPressed(0, Config.Controls.Crouch.keyboard)) then 
-                    RequestAnimSet("move_ped_crouched")
-
-                    while (not HasAnimSetLoaded("move_ped_crouched")) do 
-                        Citizen.Wait(100)
-                    end 
-
-                    if (crouched == true) then 
-                        ResetPedMovementClipset(plyPed, 0)
-                        crouched = false 
-                    elseif (crouched == false) then
-                        SetPedMovementClipset(plyPed, "move_ped_crouched", 0.25)
-                        crouched = true 
-                    end 
-                end
-            end 
+        RequestAnimSet(crouchSet)
+        while not HasAnimSetLoaded(crouchSet) do 
+            Wait(0)
         end 
+
+        if crouched then
+            SetPedMovementClipset(ped, crouchSet)
+        else
+            ResetPedMovementClipset(ped, 0)
+        end
+    end 
+end)
+
+CreateThread(function() 
+    while true do
+    Wait(0)
+        DisableControlAction(0, Config.Controls.Crouch, true)
     end
 end)
+
+
+if Config.crouch then
+    RegisterKeyMapping('crouch', 'Toggles Crouch', 'keyboard', Config.Controls.Crouch)
+end
 
 
 --Pointing Script
-local mp_pointing = false
-local keyPressed = false
 
 local function startPointing()
-    local ped = GetPlayerPed(-1)
-    RequestAnimDict("anim@mp_point")
-    while not HasAnimDictLoaded("anim@mp_point") do
+    local ped = PlayerPedId()
+    local animDict = Config.Animations.Pointing.animDict
+    local anim = Config.Animations.Pointing.anim
+    RequestAnimDict(animDict)
+    while not HasAnimDictLoaded(animDict) do
         Wait(0)
     end
     SetPedCurrentWeaponVisible(ped, 0, 1, 1, 1)
     SetPedConfigFlag(ped, 36, 1)
-    Citizen.InvokeNative(0x2D537BA194896636, ped, "task_mp_pointing", 0.5, 0, "anim@mp_point", 24)
-    RemoveAnimDict("anim@mp_point")
+    TaskMoveNetworkByName(ped, anim, 0.5, false, animDict, 24)
+    RemoveAnimDict(animDict)
 end
 
 
 local function stopPointing()
-    local ped = GetPlayerPed(-1)
-    Citizen.InvokeNative(0xD01015C7316AE176, ped, "Stop")
+    local ped = PlayerPedId(-1)
+	RequestTaskMoveNetworkStateTransition(ped, 'Stop')
     if not IsPedInjured(ped) then
         ClearPedSecondaryTask(ped)
     end
@@ -96,86 +94,56 @@ local function stopPointing()
         SetPedCurrentWeaponVisible(ped, 1, 1, 1, 1)
     end
     SetPedConfigFlag(ped, 36, 0)
-    ClearPedSecondaryTask(PlayerPedId())
+    ClearPedSecondaryTask(ped)
 end
 
-local once = true
-local oldval = false
-local oldvalped = false
+RegisterCommand('point', function()
+    local ped = PlayerPedId()
+    if IsPedInAnyVehicle(ped, false) then return end
 
-Citizen.CreateThread(function()
-    while true do
-        Wait(0)
+    if not mp_pointing then
+        startPointing()
+        mp_pointing = not mp_pointing
+    else
+        stopPointing()
+        mp_pointing = mp_pointing
+    end
 
-        if once then
-            once = false
+    while mp_pointing do
+        local camPitch = GetGameplayCamRelativePitch()
+        
+        if camPitch < -70.0 then
+            camPitch = -70.0
+        elseif camPitch > 42.0 then
+            camPitch = 42.0
         end
+        camPitch = (camPitch + 70.0) / 112.0
 
-        if not keyPressed and Config.pointing == true then
-            if IsControlPressed(0, Config.Controls.Point.keyboard) and not mp_pointing and IsPedOnFoot(PlayerPedId()) then
-                Wait(200)
-                if not IsControlPressed(0, Config.Controls.Point.keyboard) then
-                    keyPressed = true
-                    startPointing()
-                    mp_pointing = true
-                else
-                    keyPressed = true
-                    while IsControlPressed(0, Config.Controls.Point.keyboard) do
-                       Wait(50)
-                    end
-                end
-            elseif (IsControlPressed(0, Config.Controls.Point.keyboard) and mp_pointing) or (not IsPedOnFoot(PlayerPedId()) and mp_pointing) then  
-                keyPressed = true
-                mp_pointing = false
-                stopPointing()
-            end
+        local camHeading = GetGameplayCamRelativeHeading()
+        local cosCamHeading = Cos(camHeading)
+        local sinCamHeading = Sin(camHeading)
+        if camHeading < -180.0 then
+            camHeading = -180.0
+        elseif camHeading > 180.0 then
+            camHeading = 180.0
         end
+        camHeading = (camHeading + 180.0) / 360.0
 
+        local blocked
 
-        if keyPressed then
-            if not IsControlPressed(0, Config.Controls.Point.keyboard) then
-                keyPressed = false
-            end
-        end
-        if Citizen.InvokeNative(0x921CE12C489C4C41, PlayerPedId()) and not mp_pointing then
-            stopPointing()
-        end
-        if Citizen.InvokeNative(0x921CE12C489C4C41, PlayerPedId()) then
-            if not IsPedOnFoot(PlayerPedId()) then
-                stopPointing()
-            else
-                local ped = GetPlayerPed(-1)
-                local camPitch = GetGameplayCamRelativePitch()
-                if camPitch < -70.0 then
-                    camPitch = -70.0
-                elseif camPitch > 42.0 then
-                    camPitch = 42.0
-                end
-                camPitch = (camPitch + 70.0) / 112.0
+        local coords = GetOffsetFromEntityInWorldCoords(ped, (cosCamHeading * -0.2) - (sinCamHeading * (0.4 * camHeading + 0.3)), (sinCamHeading * -0.2) + (cosCamHeading * (0.4 * camHeading + 0.3)), 0.6)
+        local ray = Cast_3dRayPointToPoint(coords.x, coords.y, coords.z - 0.2, coords.x, coords.y, coords.z + 0.2, 0.4, 95, ped, 7)
+        _,blocked,_,_ = GetShapeTestResult(ray)
 
-                local camHeading = GetGameplayCamRelativeHeading()
-                local cosCamHeading = Cos(camHeading)
-                local sinCamHeading = Sin(camHeading)
-                if camHeading < -180.0 then
-                    camHeading = -180.0
-                elseif camHeading > 180.0 then
-                    camHeading = 180.0
-                end
-                camHeading = (camHeading + 180.0) / 360.0
+        SetTaskMoveNetworkSignalFloat(ped, 'Pitch', camPitch)
+        SetTaskMoveNetworkSignalFloat(ped, 'Heading', camHeading * -1.0 + 1.0)
+        SetTaskMoveNetworkSignalBool(ped, 'isBlocked', blocked)
+        SetTaskMoveNetworkSignalBool(ped, 'isFirstPerson', GetCamViewModeForContext(GetCamActiveViewModeContext()) == 4)
 
-                local blocked = 0
-                local nn = 0
-
-                local coords = GetOffsetFromEntityInWorldCoords(ped, (cosCamHeading * -0.2) - (sinCamHeading * (0.4 * camHeading + 0.3)), (sinCamHeading * -0.2) + (cosCamHeading * (0.4 * camHeading + 0.3)), 0.6)
-                local ray = Cast_3dRayPointToPoint(coords.x, coords.y, coords.z - 0.2, coords.x, coords.y, coords.z + 0.2, 0.4, 95, ped, 7);
-                nn,blocked,coords,coords = GetRaycastResult(ray)
-
-                Citizen.InvokeNative(0xD5BB4025AE449A4E, ped, "Pitch", camPitch)
-                Citizen.InvokeNative(0xD5BB4025AE449A4E, ped, "Heading", camHeading * -1.0 + 1.0)
-                Citizen.InvokeNative(0xB0A6CFD2C69C1088, ped, "isBlocked", blocked)
-                Citizen.InvokeNative(0xB0A6CFD2C69C1088, ped, "isFirstPerson", Citizen.InvokeNative(0xEE778F8C7E1142E2, Citizen.InvokeNative(0x19CAFA3C87F7C2FF)) == 4)
-
-            end
-        end
+        Wait(1)
     end
 end)
+
+if Config.pointing then
+    RegisterKeyMapping('point', 'Toggles Pointing', 'keyboard', Config.Controls.Point)
+end

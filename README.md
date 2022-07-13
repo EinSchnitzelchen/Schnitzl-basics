@@ -3,6 +3,7 @@ This is the Repository of my selfcreated FiveM basics Script. This Script is sti
 
 ## Need to know ##
 - **You are not allowed to modify the resource name**
+- **You are not allowed to modify the author, except you modified it**
 - **You are allowed to modify the resource and re-release it (with Credits)**
 
 ## Support ##
@@ -11,6 +12,10 @@ This is the Repository of my selfcreated FiveM basics Script. This Script is sti
 
 ## Features ##
 - HandsUp (Player cant shoot, hit or Pull weapon while Hands are up)
+- Enable and Disable of Scripts for your needs
+- Fully Customizeable
+- Point with Finger
+- Crouch
 
 ## Requirements ##
 

@@ -10,12 +10,12 @@ Citizen.CreateThread(function() --Setting ESX
 	end
 end)
 
-
+--Handsup Script
 Citizen.CreateThread(function()
     local handsup = false
 	while true do
 		Citizen.Wait(0)
-		if IsControlJustPressed(1, 74) then --
+		if IsControlJustPressed(1, Config.Controls.HandsUP.keyboard) and Config.handsup == true then
             if not handsup then
                 ESX.Streaming.RequestAnimDict('random@mugging3', function()
                     TaskPlayAnim(plyPed, 'random@mugging3', 'handsup_standing_base', 8.0, -8, -1, 49, 0, 0, 0, 0)
@@ -35,6 +35,41 @@ Citizen.CreateThread(function()
     end
 end)
 
+--Crouching script
+local crouched = false
+
+Citizen.CreateThread(function()
+    while true do 
+        Citizen.Wait(1)
+
+        local plyPed = GetPlayerPed(-1)
+
+        if (DoesEntityExist(plyPed) and not IsEntityDead(plyPed)) and Config.crouch == true then 
+            DisableControlAction(0, Config.Controls.Crouch.keyboard, true)
+
+            if (not IsPauseMenuActive()) then 
+                if (IsDisabledControlJustPressed(0, Config.Controls.Crouch.keyboard)) then 
+                    RequestAnimSet("move_ped_crouched")
+
+                    while (not HasAnimSetLoaded("move_ped_crouched")) do 
+                        Citizen.Wait(100)
+                    end 
+
+                    if (crouched == true) then 
+                        ResetPedMovementClipset(plyPed, 0)
+                        crouched = false 
+                    elseif (crouched == false) then
+                        SetPedMovementClipset(plyPed, "move_ped_crouched", 0.25)
+                        crouched = true 
+                    end 
+                end
+            end 
+        end 
+    end
+end)
+
+
+--Pointing Script
 local mp_pointing = false
 local keyPressed = false
 
@@ -49,6 +84,7 @@ local function startPointing()
     Citizen.InvokeNative(0x2D537BA194896636, ped, "task_mp_pointing", 0.5, 0, "anim@mp_point", 24)
     RemoveAnimDict("anim@mp_point")
 end
+
 
 local function stopPointing()
     local ped = GetPlayerPed(-1)
@@ -75,28 +111,29 @@ Citizen.CreateThread(function()
             once = false
         end
 
-        if not keyPressed then
-            if IsControlPressed(0, 29) and not mp_pointing and IsPedOnFoot(PlayerPedId()) then
+        if not keyPressed and Config.pointing == true then
+            if IsControlPressed(0, Config.Controls.Point.keyboard) and not mp_pointing and IsPedOnFoot(PlayerPedId()) then
                 Wait(200)
-                if not IsControlPressed(0, 29) then
+                if not IsControlPressed(0, Config.Controls.Point.keyboard) then
                     keyPressed = true
                     startPointing()
                     mp_pointing = true
                 else
                     keyPressed = true
-                    while IsControlPressed(0, 29) do
+                    while IsControlPressed(0, Config.Controls.Point.keyboard) do
                        Wait(50)
                     end
                 end
-            elseif (IsControlPressed(0, 29) and mp_pointing) or (not IsPedOnFoot(PlayerPedId()) and mp_pointing) then  
+            elseif (IsControlPressed(0, Config.Controls.Point.keyboard) and mp_pointing) or (not IsPedOnFoot(PlayerPedId()) and mp_pointing) then  
                 keyPressed = true
                 mp_pointing = false
                 stopPointing()
             end
         end
 
+
         if keyPressed then
-            if not IsControlPressed(0, 29) then
+            if not IsControlPressed(0, Config.Controls.Point.keyboard) then
                 keyPressed = false
             end
         end
@@ -140,38 +177,5 @@ Citizen.CreateThread(function()
 
             end
         end
-    end
-end)
-
-
-local crouched = false
-
-Citizen.CreateThread(function()
-    while true do 
-        Citizen.Wait(1)
-
-        local plyPed = GetPlayerPed(-1)
-
-        if (DoesEntityExist(plyPed) and not IsEntityDead(plyPed)) then 
-            DisableControlAction(0, 36, true) -- INPUT_DUCK  
-
-            if (not IsPauseMenuActive()) then 
-                if (IsDisabledControlJustPressed(0, 36)) then 
-                    RequestAnimSet("move_ped_crouched")
-
-                    while (not HasAnimSetLoaded("move_ped_crouched")) do 
-                        Citizen.Wait(100)
-                    end 
-
-                    if (crouched == true) then 
-                        ResetPedMovementClipset(plyPed, 0)
-                        crouched = false 
-                    elseif (crouched == false) then
-                        SetPedMovementClipset(plyPed, "move_ped_crouched", 0.25)
-                        crouched = true 
-                    end 
-                end
-            end 
-        end 
     end
 end)

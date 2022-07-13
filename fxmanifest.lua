@@ -8,7 +8,6 @@ version '1.0.0'
 dependency "es_extended"
 
 client_scripts {
-
-    'client.lua',
-
+    'config.lua',
+    'client.lua'
 }

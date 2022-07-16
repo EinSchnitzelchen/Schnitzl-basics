@@ -1,10 +1,19 @@
+--setting locales
 local handsUp = false
 local crouched = false
 local mp_pointing = false
 local keyPressed = false
 local ragdoll = false
---Handsup Script
 
+--setting ESX
+Citizen.CreateThread(function()
+	while ESX == nil do
+	  TriggerEvent('esx:getSharedObject', function(obj) ESX = obj end)
+	  Citizen.Wait(0)
+	end
+end)
+
+--Handsup Script
 if Config.handsup then
     RegisterCommand('handsup', function()
         local ped = PlayerPedId()
@@ -178,4 +187,56 @@ if Config.InfStamina then
         RestorePlayerStamina(ped, 1.0) --Setting Playerstamina to maximum
         end
     end)
+end
+
+--NoNpc Script
+
+if Config.NoNpc then
+    Citizen.CreateThread(function()
+        while true do
+            Citizen.Wait(0)
+            -- These natives have to be called every frame.
+            for i = 1, 12 do --
+                EnableDispatchService(i, false) --remove this if you want to have NPC Ambulance, Firefighters ...
+            end
+            SetVehicleDensityMultiplierThisFrame(1.0) --If you want just a few driving NPCs change the value (I recommend 0.5 ^^)
+            SetPedDensityMultiplierThisFrame(1.0) --If you want just a few walking NPCs change the value (I recommend 0.5 ^^)
+            SetRandomVehicleDensityMultiplierThisFrame(2.0) -- set random vehicles (car scenarios / cars driving off from a parking spot etc.) to 0
+            SetParkedVehicleDensityMultiplierThisFrame(1.0) -- set random parked vehicles (parked car scenarios) to 0
+            SetScenarioPedDensityMultiplierThisFrame(2.0, 1.0) -- set random npc/ai peds or scenario peds to 0
+            SetGarbageTrucks(true) -- Stop garbage trucks from randomly spawning
+            SetRandomBoats(true) -- Stop random boats from spawning in the water.
+            SetCreateRandomCops(false) -- disable random cops walking/driving around.
+            SetCreateRandomCopsNotOnScenarios(false) -- stop random cops (not in a scenario) from spawning.
+            SetCreateRandomCopsOnScenarios(false) -- stop random cops (in a scenario) from spawning.
+            SetPlayerWantedLevel(PlayerId(), 0, false)
+            SetPlayerWantedLevelNow(PlayerId(), false)
+            SetPlayerWantedLevelNoDrop(PlayerId(), 0, false)
+            
+            local x,y,z = table.unpack(GetEntityCoords(PlayerPedId()))
+            ClearAreaOfVehicles(x, y, z, 1000, false, false, false, false, false)
+            RemoveVehiclesFromGeneratorsInArea(x - 500.0, y - 500.0, z - 500.0, x + 500.0, y + 500.0, z + 500.0);
+        end
+    end)
+end
+
+
+
+--Commands--
+
+--OOC command
+if Config.OOCcommand then
+    RegisterCommand('ooc', function(source, args)
+        local closestPlayer, closestDistance = ESX.Game.GetClosestPlayer()
+        local argString = table.concat(args, " ")
+    
+        if closestPlayer ~= -1 and closestDistance <= 15.0 then
+            TriggerServerEvent('OOC', GetPlayerServerId(PlayerId()), GetPlayerServerId(closestPlayer), argString)
+        else
+            TriggerEvent(Config.NotifyPrefix, "#00c4ff", "OOC", "No Players Nearby")
+            if (Config.NotifyPrefix == "esx:showNotification") then
+                TriggerEvent("esx:showNotification", source, "OOC", "No Players Nearby")
+            end
+        end
+    end, false) --set to true = only accessable by Admins
 end

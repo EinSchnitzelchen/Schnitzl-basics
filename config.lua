@@ -39,6 +39,10 @@ Config.Animations = { --You can get Animations here: https://wiki.gtanet.work/in
     }
 }
 
+--Notification Prefix
+Config.NotifyPrefix = "esx:showNotification" 
+--Set the Prefix for Notifications default = "esx:showNotification" (most common is "notifications" or "notify"), ignore it if you dont have a special notification Script
+
 --Movement Configs
 Config.handsup = true --set to false if you dont want the Character be able to do Handsup
 Config.pointing = true --set to false if you dont want the Character be able to Point with finger
@@ -48,7 +52,9 @@ Config.ragdolled = true --set to false if you dont want the Character be able to
 
 --General Configs
 Config.InfStamina = true --set to false if you dont want the Charakter to have Infinite Stamina
+Config.NoNpc = false
 
 --Command Configs
-
+Config.OOCcommand = true --Set to false if you dont want /ooc Command
+Config.Idcommand = "notification" --Set to "notification" = Output in notifications (See Recommendations), set to "chat" = Output in Chat, Set to false if you dont want it enabled. NEEDS TO BE SPELLED RIGHT!!!
 
